@@ -98,21 +98,21 @@ COCO_INSTANCE_CATEGORY_NAMES = [
     "hair drier",
     "toothbrush",
 ]
+def rgb_to_bgr(img):
+    return img[:, :, ::-1]
+
 def bgr_to_rgb(img):
     return img[:, :, [2, 1, 0]]
 
 def save_figure(fig, path=None):
     fig = fig.copy()
     fig = bgr_to_rgb(fig)
-    # TODO: Color back to RGB
     plt.axis("off")
-    plt.imshow(fig.astype(np.uint8), cmap='gray', interpolation="nearest")
-    #plt.imshow(fig, cmap='binary')
-    #plt.imshow(fig, cmap='gray')
-    plt.savefig(path)
+    plt.imshow(fig.astype(np.uint8), interpolation="nearest")
+    plt.savefig(path, bbox_inches='tight')
 
 def plot_image_with_boxes(img, boxes=[], pred_cls=[], pred_score=[]):
-    text_size = 1
+    text_size = 0.5
     text_th = 1
     rect_th = 1
 
@@ -124,14 +124,15 @@ def plot_image_with_boxes(img, boxes=[], pred_cls=[], pred_score=[]):
 
         # Write the prediction class
         text = "{} {:.2f}".format(pred_cls[i], pred_score[i])
-        cv2.putText(img, text, (int(x1), int(y1)), cv2.FONT_HERSHEY_SIMPLEX, text_size, (0, 255, 0), thickness=text_th)
+        offset = 10
+        cv2.putText(img, text, (int(x1), int(y1)+offset), cv2.FONT_HERSHEY_SIMPLEX, text_size, (0, 255, 0), thickness=text_th)
     return img
 
 
 def extract_predictions(predictions_):
     # Get the predicted class
     predictions_class = [COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(predictions_["labels"])]
-    print("\npredicted classes:", predictions_class)
+    print("\npredicted classes({}):".format(len(predictions_class)), predictions_class)
 
     # Get the predicted bounding boxes
     predictions_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(predictions_["boxes"])]
@@ -158,3 +159,30 @@ def write_attack_config(root, attack):
         f.write("attack.max_iter:\t{}\n".format(attack.max_iter))
         f.write("attack.batch_size:\t{}\n".format(attack.batch_size))
         f.write("attack.estimator:\n{}".format(attack.estimator))
+        
+def make_predictions(model, images):
+    predictions = model.predict(x=images)
+    #print('predictions: {}'.format(predictions))
+    #print('images.shape[0]: {}'.format(images.shape[0]))
+    prediction_plots = []
+    for i in range(images.shape[0]):
+        print("\nPredictions image {}:".format(i))
+
+        # Process predictions
+        predictions_class, predictions_boxes, predictions_score = extract_predictions(predictions[i])
+
+        # Plot predictions
+        prediction_plot = plot_image_with_boxes(
+            img=images[i].copy(), boxes=predictions_boxes, pred_cls=predictions_class, pred_score=predictions_score
+        )
+        prediction_plots.append(prediction_plot)
+    return prediction_plots, predictions_class, predictions_score
+
+def save_images(imgs, path_prefix=None):
+    if path_prefix == None:
+        print("ERROR: No path_prefix included")
+        return None
+    
+    for i in range(len(imgs)):
+        save_path = path_prefix + "_{}.png".format(i)
+        save_figure(imgs[i], save_path)
