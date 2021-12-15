@@ -1,9 +1,13 @@
 from random import randint
 import matplotlib.pyplot as plt
 import cv2
+import os
 import numpy as np
 from datetime import datetime
 today = datetime.today().strftime("%d-%m %H:%M:%S")
+
+run_number = len(os.listdir("./results"))
+run_root = "results/{}/".format(run_number)
 
 COCO_INSTANCE_CATEGORY_NAMES = [
     "__background__",
@@ -128,6 +132,11 @@ def plot_image_with_boxes(img, boxes=[], pred_cls=[], pred_score=[]):
         cv2.putText(img, text, (int(x1), int(y1)+offset), cv2.FONT_HERSHEY_SIMPLEX, text_size, (0, 255, 0), thickness=text_th)
     return img
 
+def write_predictions(cls, conf, filename, iterations=0):
+    with open(run_root + filename, 'a+') as f:
+        f.write("\nIterations: {}\n".format(iterations))
+        f.write("Classes:\t{}\n".format(cls))
+        f.write("Confidence:\t{}\n".format(conf[:len(cls)]))
 
 def extract_predictions(predictions_):
     # Get the predicted class
@@ -140,7 +149,9 @@ def extract_predictions(predictions_):
     # Get the predicted prediction score
     predictions_score = list(predictions_["scores"])
     print("predicted score:", predictions_score)
-
+    
+    write_predictions(predictions_class, predictions_score, 'all_adversarial_predictions.txt')
+    
     # Get a list of index with score greater than threshold
     threshold = 0.5
     try:
@@ -165,6 +176,8 @@ def make_predictions(model, images):
     #print('predictions: {}'.format(predictions))
     #print('images.shape[0]: {}'.format(images.shape[0]))
     prediction_plots = []
+    prediction_classes = []
+    prediction_scores = []
     for i in range(images.shape[0]):
         print("\nPredictions image {}:".format(i))
 
@@ -176,7 +189,9 @@ def make_predictions(model, images):
             img=images[i].copy(), boxes=predictions_boxes, pred_cls=predictions_class, pred_score=predictions_score
         )
         prediction_plots.append(prediction_plot)
-    return prediction_plots, predictions_class, predictions_score
+        prediction_classes.append(predictions_class)
+        prediction_scores.append(predictions_score)
+    return prediction_plots, prediction_classes, prediction_scores
 
 def save_images(imgs, path_prefix=None):
     if path_prefix == None:

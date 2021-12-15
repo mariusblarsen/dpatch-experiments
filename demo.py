@@ -1,12 +1,14 @@
-import numpy as np
-import art
 import os
 
-from art.utils import load_dataset, load_mnist, load_stl
+import art
+import numpy as np
 from art.attacks.evasion import DPatch
 from art.estimators.object_detection import PyTorchFasterRCNN
-from utils import COCO_INSTANCE_CATEGORY_NAMES, save_figure, write_attack_config, make_predictions
+from art.utils import load_dataset, load_mnist, load_stl
 from PIL import Image
+
+from utils import (COCO_INSTANCE_CATEGORY_NAMES, make_predictions, save_figure,
+                   write_attack_config, write_predictions)
 
 run_number = len(os.listdir("./results"))
 run_root = "results/{}/".format(run_number)
@@ -17,12 +19,16 @@ frcnn = PyTorchFasterRCNN(
     attack_losses=["loss_classifier", "loss_box_reg", "loss_objectness", "loss_rpn_box_reg"],
 )
 
+# Iterations
+attack_iterations = 1
+training_iterations = 1
+
 # Attack
 attack = DPatch(
     frcnn,
-    patch_shape=(100, 100, 3),
-    learning_rate=1.0,
-    max_iter=1000,
+    patch_shape=(80, 80, 3),
+    #learning_rate=1.0,
+    max_iter=attack_iterations,
     #batch_size=1,
     verbose=True,
 )
@@ -31,6 +37,34 @@ attack._targeted = True
 def rgb_to_bgr(img):
     return img[:, :, ::-1]
 
+def get_voc():
+    voc_path = "data/VOCdevkit/VOC2007/JPEGImages/" 
+    image_path = os.listdir(voc_path)
+    batch_size = 250
+    batch_num = 0  # Which batch to use total 20 batches
+    batch = batch_size * batch_num
+    next_batch = batch + batch_size
+    image_path = image_path[batch:(next_batch - 1)]
+    images = []
+    for image in image_path:
+        img = Image.open(voc_path + image).convert('RGB')
+        img = img.resize((416, 416))
+        img = np.array(img).astype(np.float32)
+        img = rgb_to_bgr(img)
+        images.append(img)
+    return np.array(images)
+    
+def get_all_x():
+    image_paths = os.listdir("images/")
+    images = []
+    for path in image_paths:
+        img = Image.open("images/" + path).convert('RGB')
+        img = img.resize((224, 224))
+        img = np.array(img).astype(np.float32)
+        img = rgb_to_bgr(img)
+        images.append(img)
+    return np.array(images)
+
 def get_x(dataset=None, n=0, img=None):
     if dataset == 'mnist':
         (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_mnist()
@@ -38,17 +72,6 @@ def get_x(dataset=None, n=0, img=None):
     if dataset == 'stl':
         (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_stl()
         return x_test[:n].astype(np.float32)
-    #image_paths = ['4.png', '2.png']
-    #image_paths = os.listdir("images/")
-    #images = []
-    #for path in image_paths:
-    #    img = Image.open("images/" + path).convert('RGB')
-    #    img = img.resize((224, 224))
-    #    img = np.array(img).astype(np.float32)
-    #    img = rgb_to_bgr(img)
-    #    images.append(img)
-    #return np.array(images)
-    img = img if img else "2.png"
     img = Image.open(img).convert('RGB')
     img = img.resize((224, 224))
     img = np.array(img).astype(np.float32)
@@ -58,33 +81,47 @@ def get_x(dataset=None, n=0, img=None):
     print("img.shape:", img.shape)
     return img
         
-def write_predictions(cls, conf, iterations=0, beneign=True):
-    filename = 'adversarial_predictions.txt'
-    if beneign:
-        filename = 'beneign_predictions.txt'
-    with open(run_root + filename, 'a+') as f:
-        f.write("\nIterations: {}\n".format(iterations))
-        f.write("Classes:\t{}\n".format(cls))
-        f.write("Confidence:\t{}\n".format(conf[:len(cls)]))
+
+def save_patch(patch):
+    """
+    Saves patch in directory with patch configs
+    """
+    iterations = training_iterations * attack_iterations
+    size = attack.patch_shape
+    patch_dir = "patches/"
+    if not os.path.exists(patch_dir):
+        os.makedirs(patch_dir)
     
+    patch_num = len(os.listdir(patch_dir))
+    patch_path = patch_dir + "{}_{}x{}_{}-iterations/".format(
+        patch_num,
+        size[0],
+        size[1],
+        iterations
+        )
+    os.makedirs(patch_path)
+    patch_name = "np_patch"
+    np.save(os.path.join(patch_path, patch_name), patch)
+    
+    with open(patch_path + 'patch_cfg.txt', 'w+') as f:
+        f.write("patch_shape:\t{}\n".format(size))
+        f.write("iterations:\t{}\n".format(iterations))    
 
 def attack_dpatch(x):
     write_attack_config(run_root, attack)
     # Make prediction on beneign examples
     beneign_prediction_plots, pred_cls, pred_scores = make_predictions(frcnn, x)
-    write_predictions(pred_cls, pred_scores)
+    write_predictions(pred_cls, pred_scores, 'beneign_predictions.txt')
     for i in range(len(beneign_prediction_plots)):
         beneign_path = run_root + "x_{}".format(i)
         save_figure(beneign_prediction_plots[i], path=beneign_path)
+    
     # Generate patch
-    # TODO: x[[0]] or just x?
-    # TODO: target_label no effect?
-    for i in range(9):
+    for i in range(training_iterations):
         print('\n----------- iteration {} -----------'.format(i))
         print('total training iterations: {}'.format(i*attack.max_iter))
-
-        target_label = COCO_INSTANCE_CATEGORY_NAMES.index("cow")
-        patch = attack.generate(x=x, target_label=[target_label])
+        target_label = COCO_INSTANCE_CATEGORY_NAMES.index("toaster")
+        patch = attack.generate(x=x, target_label=[target_label]*len(x))
         patch_path = run_root + "patch"
         np.save(os.path.join(run_root, "np_patch_{}".format(i)), attack._patch)
         # Apply patch to image,
@@ -94,13 +131,14 @@ def attack_dpatch(x):
         for j in range(len(adversarial_prediction_plots)):
             adversarial_path = run_root + "x_adv_{}_{}".format(j, i)
             save_figure(adversarial_prediction_plots[j], path=adversarial_path)
-            write_predictions(pred_cls, pred_scores, i*attack.max_iter, beneign=False)
-        save_figure(patch, path=patch_path)
+            write_predictions(pred_cls, pred_scores, 'adversarial_predictions_{}.txt'.format(j), i*attack.max_iter)
+    save_figure(patch, path=patch_path)
+    save_patch(attack._patch)
 
 if __name__ == "__main__":
-    resume = True
+    resume = False
     if resume:
-        patch = np.load(os.path.join(".", "big_np_patch.npy"))
+        patch = np.load(os.path.join(".", "np_patch_8.npy"))
         attack._patch = patch
     # None, mnist or stl
     # dataset = 'stl'
@@ -109,10 +147,11 @@ if __name__ == "__main__":
     n = 2
     import sys
     img = None
-    if len(sys.argv) > 0:
+    if len(sys.argv) > 1:
         img = sys.argv[1]
 
     x = get_x(dataset, n, img)
+    #x = get_voc()
     print('x.shape: {}'.format(x.shape))
     if len(x.shape) != 4:
         print("Abort, x.shape = {}".format(x.shape))
