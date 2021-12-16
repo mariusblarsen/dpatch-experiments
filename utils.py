@@ -116,7 +116,7 @@ def save_figure(fig, path=None):
     plt.savefig(path, bbox_inches='tight')
 
 def plot_image_with_boxes(img, boxes=[], pred_cls=[], pred_score=[]):
-    text_size = 0.5
+    text_size = 1
     text_th = 1
     rect_th = 1
 
@@ -128,8 +128,9 @@ def plot_image_with_boxes(img, boxes=[], pred_cls=[], pred_score=[]):
 
         # Write the prediction class
         text = "{} {:.2f}".format(pred_cls[i], pred_score[i])
-        offset = 10
-        cv2.putText(img, text, (int(x1), int(y1)+offset), cv2.FONT_HERSHEY_SIMPLEX, text_size, (0, 255, 0), thickness=text_th)
+        offset = 20
+        cv2.putText(img, text, (int(x1), int(y1)+offset), cv2.FONT_HERSHEY_SIMPLEX, text_size, (0, 0, 0), thickness=2*text_th)
+        cv2.putText(img, text, (int(x1), int(y1)+offset), cv2.FONT_HERSHEY_SIMPLEX, text_size, (255, 255, 255), thickness=text_th)
     return img
 
 def write_predictions(cls, conf, filename, iterations=0):
