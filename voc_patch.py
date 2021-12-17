@@ -26,7 +26,7 @@ frcnn = PyTorchFasterRCNN(
 # Iterations
 attack_iterations = 1
 training_iterations = 1
-batch_size = 25
+batch_size = 50
 
 # Attack
 attack = DPatch(
@@ -35,7 +35,7 @@ attack = DPatch(
     #learning_rate=1.0,
     max_iter=attack_iterations,
     batch_size=batch_size,
-    verbose=True,
+    verbose=False,
 )
 attack._targeted = True
 
@@ -108,9 +108,8 @@ def attack_dpatch(dataloader):
         print('\n----------- epoch {}/{} -----------'.format(epoch+1, training_iterations))
         print('cumulative training iterations: {}'.format(epoch*attack.max_iter*total_samples))
         image_counter = 0
-        for i, x in enumerate(dataloader):        
-            if (i + 1) % 50 == 0:
-                print('\n\t------ step {}/{} ------'.format(i+1, total_steps))
+        for i, x in enumerate(dataloader):
+            # print('\n\t------ step {}/{} ------'.format(i+1, total_steps))
             x = np.array(x)
             patch = attack.generate(x=x, target_label=[target_label]*len(x))
             np.save(os.path.join(run_root, "np_patch_{}".format(epoch)), attack._patch)
@@ -147,7 +146,7 @@ if __name__ == "__main__":
         dataset=voc_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=2
+        num_workers=1
     )
     os.makedirs(run_root)
     attack_dpatch(dataloader)

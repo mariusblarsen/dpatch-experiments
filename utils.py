@@ -142,14 +142,14 @@ def write_predictions(cls, conf, filename, iterations=0):
 def extract_predictions(predictions_):
     # Get the predicted class
     predictions_class = [COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(predictions_["labels"])]
-    print("\npredicted classes({}):".format(len(predictions_class)), predictions_class)
+    # print("\npredicted classes({}):".format(len(predictions_class)), predictions_class)
 
     # Get the predicted bounding boxes
     predictions_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(predictions_["boxes"])]
 
     # Get the predicted prediction score
     predictions_score = list(predictions_["scores"])
-    print("predicted score:", predictions_score)
+    # print("predicted score:", predictions_score)
     
     write_predictions(predictions_class, predictions_score, 'all_adversarial_predictions.txt')
     
@@ -180,7 +180,7 @@ def make_predictions(model, images):
     prediction_classes = []
     prediction_scores = []
     for i in range(images.shape[0]):
-        print("\nPredictions image {}:".format(i))
+        # print("\nPredictions image {}:".format(i))
 
         # Process predictions
         predictions_class, predictions_boxes, predictions_score = extract_predictions(predictions[i])
