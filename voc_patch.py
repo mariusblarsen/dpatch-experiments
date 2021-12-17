@@ -3,11 +3,13 @@ import os
 import art
 import math
 import numpy as np
+import argparse
 from art.attacks.evasion import DPatch
 from art.estimators.object_detection import PyTorchFasterRCNN
 from art.utils import load_dataset, load_mnist, load_stl
 from torch.utils.data import DataLoader
 from PIL import Image
+from datetime import datetime
 
 from utils import (COCO_INSTANCE_CATEGORY_NAMES, make_predictions, save_figure,
                    write_attack_config, write_predictions)
@@ -20,13 +22,6 @@ frcnn = PyTorchFasterRCNN(
     clip_values=(0, 255),
     attack_losses=["loss_classifier", "loss_box_reg", "loss_objectness", "loss_rpn_box_reg"],
 )
-
-
-# TODO:
-# - torch.dataloader (https://www.youtube.com/watch?v=PXOzkkB5eH0)
-# - Split voc dataset into batches
-# - Iterate batches
-# - Run on IDUN
 
 # Iterations
 attack_iterations = 1
@@ -109,12 +104,13 @@ def attack_dpatch(dataloader):
 
     # Generate patch
     for epoch in range(training_iterations):
+        start_time = datetime.now()
         print('\n----------- epoch {}/{} -----------'.format(epoch+1, training_iterations))
         print('cumulative training iterations: {}'.format(epoch*attack.max_iter*total_samples))
         image_counter = 0
-        
         for i, x in enumerate(dataloader):        
-            print('\n\t------ step {}/{} ------'.format(i+1, total_steps))
+            if (i + 1) % 50 == 0:
+                print('\n\t------ step {}/{} ------'.format(i+1, total_steps))
             x = np.array(x)
             patch = attack.generate(x=x, target_label=[target_label]*len(x))
             np.save(os.path.join(run_root, "np_patch_{}".format(epoch)), attack._patch)
@@ -129,14 +125,20 @@ def attack_dpatch(dataloader):
                     save_figure(adversarial_prediction_plots[j], path=adversarial_path)
                     write_predictions(pred_cls[j], pred_scores[j], 'adversarial_predictions_{}.txt'.format(image_counter), i*attack.max_iter)
                     image_counter+=1
-    print('total training iterations: {}'.format((epoch+1)*attack.max_iter*total_samples))
+        print("Epoch completed in: " + str(datetime.now() - start_time))
+    print('Total training iterations: {}'.format((epoch+1)*attack.max_iter*total_samples))
     save_figure(patch, path=patch_path)
     save_patch(attack._patch)
 
 if __name__ == "__main__":
-    resume = False
-    if resume:
-        patch = np.load(os.path.join(".", "np_patch_8.npy"))
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-r', '--resume', default=False, type=bool, help='Resume from an old patch')
+    parser.add_argument('-p', '--patch', default='np_patch.npy', type=str, help='Path to patch to continue training')
+
+    args = parser.parse_args()
+
+    if args.resume:
+        patch = np.load(args.patch)
         attack._patch = patch
 
     voc_dataset = get_voc()
