@@ -32,7 +32,7 @@ batch_size = 50
 attack = DPatch(
     frcnn,
     patch_shape=(80, 80, 3),
-    #learning_rate=1.0,
+    learning_rate=0.9,
     max_iter=attack_iterations,
     batch_size=batch_size,
     verbose=False,
@@ -116,7 +116,7 @@ def attack_dpatch(dataloader):
             # Apply patch to image,
             # And run prediction for the first n batches
             n = 1  # How many batches to save iamges from
-            if i < n:
+            if (i < n and (epoch % 30)==0):
                 x_adv = attack.apply_patch(x=x)
                 adversarial_prediction_plots, pred_cls, pred_scores = make_predictions(frcnn, x_adv)
                 for j in range(len(adversarial_prediction_plots)):
@@ -133,8 +133,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--resume', default=False, type=bool, help='Resume from an old patch')
     parser.add_argument('-p', '--patch', default='np_patch.npy', type=str, help='Path to patch to continue training')
+    parser.add_argument('-e', '--epochs', default=1, type=int, help='Number of training iterations')
 
     args = parser.parse_args()
+
+    training_iterations = args.epochs
 
     if args.resume:
         patch = np.load(args.patch)

@@ -20,14 +20,14 @@ frcnn = PyTorchFasterRCNN(
 )
 
 # Iterations
-attack_iterations = 1
-training_iterations = 1
+attack_iterations = 1000
+training_iterations = 180
 
 # Attack
 attack = DPatch(
     frcnn,
-    patch_shape=(80, 80, 3),
-    #learning_rate=1.0,
+    patch_shape=(40, 40, 3),
+    learning_rate=1.0,
     max_iter=attack_iterations,
     #batch_size=1,
     verbose=True,
@@ -127,18 +127,19 @@ def attack_dpatch(x):
         # Apply patch to image,
         x_adv = attack.apply_patch(x=x)
         # And run prediction
-        adversarial_prediction_plots, pred_cls, pred_scores = make_predictions(frcnn, x_adv)
-        for j in range(len(adversarial_prediction_plots)):
-            adversarial_path = run_root + "x_adv_{}_{}".format(j, i)
-            save_figure(adversarial_prediction_plots[j], path=adversarial_path)
-            write_predictions(pred_cls, pred_scores, 'adversarial_predictions_{}.txt'.format(j), i*attack.max_iter)
+        if (i % 10 == 0):
+            adversarial_prediction_plots, pred_cls, pred_scores = make_predictions(frcnn, x_adv)
+            for j in range(len(adversarial_prediction_plots)):
+                adversarial_path = run_root + "x_adv_{}_{}".format(j, i)
+                save_figure(adversarial_prediction_plots[j], path=adversarial_path)
+                write_predictions(pred_cls, pred_scores, 'adversarial_predictions_{}.txt'.format(j), i*attack.max_iter)
     save_figure(patch, path=patch_path)
     save_patch(attack._patch)
 
 if __name__ == "__main__":
-    resume = False
+    resume = True
     if resume:
-        patch = np.load(os.path.join(".", "np_patch_8.npy"))
+        patch = np.load(os.path.join(".", "np_patch.npy"))
         attack._patch = patch
     # None, mnist or stl
     # dataset = 'stl'
