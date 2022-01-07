@@ -4,7 +4,6 @@ import art
 import numpy as np
 from art.attacks.evasion import DPatch
 from art.estimators.object_detection import PyTorchFasterRCNN
-from art.utils import load_dataset, load_mnist, load_stl
 from PIL import Image
 
 from utils import (COCO_INSTANCE_CATEGORY_NAMES, make_predictions, save_figure,
@@ -37,41 +36,7 @@ attack._targeted = True
 def rgb_to_bgr(img):
     return img[:, :, ::-1]
 
-def get_voc():
-    voc_path = "data/VOCdevkit/VOC2007/JPEGImages/" 
-    image_path = os.listdir(voc_path)
-    batch_size = 250
-    batch_num = 0  # Which batch to use total 20 batches
-    batch = batch_size * batch_num
-    next_batch = batch + batch_size
-    image_path = image_path[batch:(next_batch - 1)]
-    images = []
-    for image in image_path:
-        img = Image.open(voc_path + image).convert('RGB')
-        img = img.resize((416, 416))
-        img = np.array(img).astype(np.float32)
-        img = rgb_to_bgr(img)
-        images.append(img)
-    return np.array(images)
-    
-def get_all_x():
-    image_paths = os.listdir("images/")
-    images = []
-    for path in image_paths:
-        img = Image.open("images/" + path).convert('RGB')
-        img = img.resize((224, 224))
-        img = np.array(img).astype(np.float32)
-        img = rgb_to_bgr(img)
-        images.append(img)
-    return np.array(images)
-
 def get_x(dataset=None, n=0, img=None):
-    if dataset == 'mnist':
-        (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_mnist()
-        return x_test[:n].astype(np.float32)
-    if dataset == 'stl':
-        (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = load_stl()
-        return x_test[:n].astype(np.float32)
     img = Image.open(img).convert('RGB')
     img = img.resize((224, 224))
     img = np.array(img).astype(np.float32)
@@ -152,7 +117,6 @@ if __name__ == "__main__":
         img = sys.argv[1]
 
     x = get_x(dataset, n, img)
-    #x = get_voc()
     print('x.shape: {}'.format(x.shape))
     if len(x.shape) != 4:
         print("Abort, x.shape = {}".format(x.shape))
