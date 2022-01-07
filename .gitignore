@@ -10,3 +10,5 @@ attack/
 *.slurm
 *.out
 *.npy
+
+*.png
