@@ -1,6 +1,12 @@
-
+__pycache__/
 output/
 
 patches/
 
 results/
+
+data/
+
+*.slurm
+*.out
+*.npy
