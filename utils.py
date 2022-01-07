@@ -116,12 +116,12 @@ def save_figure(fig, path=None):
     plt.savefig(path, bbox_inches='tight')
 
 def plot_image_with_boxes(img, boxes=[], pred_cls=[], pred_score=[]):
-    text_size = 1
-    text_th = 1
-    rect_th = 1
+    text_size = 0.7
+    text_th = 2
+    rect_th = 2
     
-    rect_color = (54, 78, 233)
-    font_color = (0, 10, 75)
+    rect_color = (233, 78, 54)
+    font_color = (255, 200, 200)
 
     for i in range(len(boxes)):
         # Draw Rectangle with the coordinates
@@ -131,19 +131,21 @@ def plot_image_with_boxes(img, boxes=[], pred_cls=[], pred_score=[]):
 
         # Write the prediction class
         text = "{} {:.2f}".format(pred_cls[i], pred_score[i])
-        # Label background
-        labelSize = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, text_size, thickness=text_th)
-        text_x2 = int(x1 + labelSize[0][0])
-        text_y2 = int(y2 - int(labelSize[0][1]))
-        cv2.rectangle(img,(int(x1), int(y1)),(text_x2, text_y2), rect_color, cv2.FILLED)
-    
+        labelSize = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, text_size, 2*text_th)
+        offset = labelSize[0][1] + 2
+        t_x2 = int(x1 + labelSize[0][0] + 2)
+        t_y2 = int(y1 + labelSize[0][1] + offset/2)
+        cv2.rectangle(img, (int(x1), int(y1)), (t_x2, t_y2), rect_color, cv2.FILLED)
+
     for i in range(len(boxes)):
-        # Write labels last
-        offset = 20
         x1, y1 = boxes[i][0]
         x2, y2 = boxes[i][1]
         text = "{} {:.2f}".format(pred_cls[i], pred_score[i])
-        cv2.putText(img, text, (int(x1), int(y1)+offset), cv2.FONT_HERSHEY_SIMPLEX, text_size, font_color, thickness=text_th)
+        offset = labelSize[0][1] + 2
+        labelSize = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, text_size, 2*text_th)
+        t_x2 = int(x1 + labelSize[0][0] + 2)
+        t_y2 = int(y1 + labelSize[0][1] + offset/2)
+        cv2.putText(img, text, (int(x1), int(y1)+offset), cv2.FONT_HERSHEY_SIMPLEX, text_size, color=font_color, thickness=text_th)
     return img
 
 def write_predictions(cls, conf, filename, iterations=0):
