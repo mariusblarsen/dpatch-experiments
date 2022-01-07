@@ -1,11 +1,11 @@
 __pycache__/
 output/
-
 patches/
-
 results/
-
 data/
+idun/
+gcloud/
+attack/
 
 *.slurm
 *.out
