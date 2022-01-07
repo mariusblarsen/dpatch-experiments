@@ -173,7 +173,10 @@ def write_attack_config(root, attack):
         f.write("attack.estimator:\n{}".format(attack.estimator))
         
 def make_predictions(model, images):
+    print("make_predictions")
     predictions = model.predict(x=images)
+    print("predictions done")
+    exit(0)
     #print('predictions: {}'.format(predictions))
     #print('images.shape[0]: {}'.format(images.shape[0]))
     prediction_plots = []
@@ -183,12 +186,16 @@ def make_predictions(model, images):
         # print("\nPredictions image {}:".format(i))
 
         # Process predictions
+        print("extracting predictions")
         predictions_class, predictions_boxes, predictions_score = extract_predictions(predictions[i])
+        print("extracting predictions done")
 
         # Plot predictions
+        print("plotting predictions")
         prediction_plot = plot_image_with_boxes(
             img=images[i].copy(), boxes=predictions_boxes, pred_cls=predictions_class, pred_score=predictions_score
         )
+        print("plotting predictions done")
         prediction_plots.append(prediction_plot)
         prediction_classes.append(predictions_class)
         prediction_scores.append(predictions_score)
