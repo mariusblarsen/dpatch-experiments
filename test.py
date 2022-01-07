@@ -106,12 +106,9 @@ if __name__ == "__main__":
     for i, x in enumerate(dataloader):
         x = np.array(x)
         x_adv = attack.apply_patch(x=x)
-        adversarial_prediction_plots, _, _ = make_predictions(frcnn, x_adv)
-        print("d")
+        adversarial_prediction_plots = make_predictions(frcnn, x_adv)
         image_counter = 0
-        print("e")
         for j in range(len(adversarial_prediction_plots)):
-            print("f")
             adversarial_path = run_root + "x_adv_{}".format(image_counter)
             save_figure(adversarial_prediction_plots[j], path=adversarial_path)
             image_counter+=1
