@@ -6,7 +6,6 @@ import numpy as np
 import argparse
 from art.attacks.evasion import DPatch
 from art.estimators.object_detection import PyTorchFasterRCNN
-from art.utils import load_dataset, load_mnist, load_stl
 from torch.utils.data import DataLoader
 from PIL import Image
 from datetime import datetime
