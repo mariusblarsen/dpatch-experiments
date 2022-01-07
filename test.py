@@ -17,7 +17,7 @@ def get_voc():
     images = []
     for image in image_path:
         img = Image.open(voc_path + image).convert('RGB')
-        img = img.resize((416, 416))
+        #img = img.resize((416, 416))
         img = np.array(img).astype(np.float32)
         img = rgb_to_bgr(img)
         images.append(img)
