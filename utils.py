@@ -131,9 +131,9 @@ def plot_image_with_boxes(img, boxes=[], pred_cls=[], pred_score=[]):
         offset = 20
         # Label background
         labelSize = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, text_size, thickness=text_th)
-        text_x2 = x1 + labelSize[0][0]
-        text_y2 = y2 - int(labelSize[0][1])
-        cv2.rectangle(img,(x1,y1),(text_x2,text_y2),(0,255,0),cv2.FILLED)
+        text_x2 = int(x1 + labelSize[0][0])
+        text_y2 = int(y2 - int(labelSize[0][1]))
+        cv2.rectangle(img,(int(x1), int(y1)),(text_x2, text_y2),(0,255,0), cv2.FILLED)
         # Write label
         #cv2.putText(img, text, (int(x1), int(y1)+offset), cv2.FONT_HERSHEY_SIMPLEX, text_size, (0, 0, 0), thickness=2*text_th)
         cv2.putText(img, text, (int(x1), int(y1)+offset), cv2.FONT_HERSHEY_SIMPLEX, text_size, (255, 255, 255), thickness=text_th)
