@@ -6,6 +6,7 @@ import numpy as np
 from art.attacks.evasion import DPatch
 from art.estimators.object_detection import PyTorchFasterRCNN
 from PIL import Image
+from datetime import datetime
 
 from utils import (COCO_INSTANCE_CATEGORY_NAMES, make_predictions, save_figure,
                    write_attack_config, write_predictions)
@@ -81,6 +82,7 @@ def attack_dpatch(x):
     
     # Generate patch
     for epoch in range(training_iterations):
+        start_time = datetime.now()
         print('\n----------- iteration {} -----------'.format(epoch))
         print('total training iterations: {}'.format(epoch*attack.max_iter))
         target_label = COCO_INSTANCE_CATEGORY_NAMES.index("toaster")
@@ -96,6 +98,7 @@ def attack_dpatch(x):
                 adversarial_path = run_root + "x_adv_{}_{}".format(j, epoch)
                 save_figure(adversarial_prediction_plots[j], path=adversarial_path)
                 write_predictions(pred_cls, pred_scores, 'adversarial_predictions_{}.txt'.format(j), epoch*attack.max_iter)
+        print("Epoch completed in: " + str(datetime.now() - start_time))
     save_figure(patch, path=patch_path)
     save_patch(attack._patch)
 
