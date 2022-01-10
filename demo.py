@@ -1,3 +1,4 @@
+import argparse
 import os
 
 import art
@@ -28,17 +29,14 @@ attack = DPatch(
     patch_shape=(40, 40, 3),
     learning_rate=1.0,
     max_iter=attack_iterations,
-    #batch_size=1,
     verbose=True,
 )
-attack._targeted = True
 
 def rgb_to_bgr(img):
     return img[:, :, ::-1]
 
-def get_x(dataset=None, n=0, img=None):
-    img = Image.open(img).convert('RGB')
-    img = img.resize((224, 224))
+def get_x(image):
+    img = Image.open(image).convert('RGB')
     img = np.array(img).astype(np.float32)
     img = rgb_to_bgr(img)
     if len(img.shape) < 4:
@@ -82,45 +80,47 @@ def attack_dpatch(x):
         save_figure(beneign_prediction_plots[i], path=beneign_path)
     
     # Generate patch
-    for i in range(training_iterations):
-        print('\n----------- iteration {} -----------'.format(i))
-        print('total training iterations: {}'.format(i*attack.max_iter))
+    for epoch in range(training_iterations):
+        print('\n----------- iteration {} -----------'.format(epoch))
+        print('total training iterations: {}'.format(epoch*attack.max_iter))
         target_label = COCO_INSTANCE_CATEGORY_NAMES.index("toaster")
         patch = attack.generate(x=x, target_label=[target_label]*len(x))
         patch_path = run_root + "patch"
-        np.save(os.path.join(run_root, "np_patch_{}".format(i)), attack._patch)
+        np.save(os.path.join(run_root, "np_patch_{}".format(epoch)), attack._patch)
         # Apply patch to image,
         x_adv = attack.apply_patch(x=x)
         # And run prediction
-        if (i % 10 == 0):
+        if (epoch % 10 == 0):
             adversarial_prediction_plots, pred_cls, pred_scores = make_predictions(frcnn, x_adv)
             for j in range(len(adversarial_prediction_plots)):
-                adversarial_path = run_root + "x_adv_{}_{}".format(j, i)
+                adversarial_path = run_root + "x_adv_{}_{}".format(j, epoch)
                 save_figure(adversarial_prediction_plots[j], path=adversarial_path)
-                write_predictions(pred_cls, pred_scores, 'adversarial_predictions_{}.txt'.format(j), i*attack.max_iter)
+                write_predictions(pred_cls, pred_scores, 'adversarial_predictions_{}.txt'.format(j), epoch*attack.max_iter)
     save_figure(patch, path=patch_path)
     save_patch(attack._patch)
 
 if __name__ == "__main__":
-    resume = True
-    if resume:
-        patch = np.load(os.path.join(".", "np_patch.npy"))
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-r', '--resume', default=False, type=bool, help='Resume from an old patch')
+    parser.add_argument('-p', '--patch', default='np_patch.npy', type=str, help='Path to patch to continue training')
+    parser.add_argument('-e', '--epochs', default=0, type=int, help='Number of training iterations')
+    parser.add_argument('-i', '--image', default='', type=str, help='Target image')
+    
+    args = parser.parse_args()
+    
+    if args.epochs:
+        training_iterations = args.epochs
+    
+    if args.resume:
+        patch = np.load(args.patch)
         attack._patch = patch
-    # None, mnist or stl
-    # dataset = 'stl'
-    # dataset = 'mnist'  # NB! Patch-shape: (H, W, 1)
-    dataset = None
-    n = 2
-    import sys
-    img = None
-    if len(sys.argv) > 1:
-        img = sys.argv[1]
 
-    x = get_x(dataset, n, img)
-    print('x.shape: {}'.format(x.shape))
+    x = get_x(args.image)
+
     if len(x.shape) != 4:
         print("Abort, x.shape = {}".format(x.shape))
         exit(0)
+
     os.makedirs(run_root)
     attack_dpatch(x)
     print("\nfinished run nr. {}".format(run_number))
