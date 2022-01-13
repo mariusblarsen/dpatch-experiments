@@ -27,11 +27,12 @@ training_iterations = 180
 # Attack
 attack = DPatch(
     frcnn,
-    patch_shape=(40, 40, 3),
+    patch_shape=(80, 80, 3),
     learning_rate=1.0,
     max_iter=attack_iterations,
     verbose=True,
 )
+attack._targeted = True
 
 def rgb_to_bgr(img):
     return img[:, :, ::-1]
